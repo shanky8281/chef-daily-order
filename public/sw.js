@@ -1,8 +1,8 @@
 // Offline support (N4, F17): app files are fetched from the network first so updates show at
 // once, with the last copy used when the kitchen has no signal. The API is never cached here;
 // the page keeps its own copy of the item list and the order outbox.
-const CACHE = "cdo-v1";
-const SHELL = ["./", "index.html", "styles.css", "app.js", "admin.js", "xlsx.js", "icon.svg", "manifest.webmanifest"];
+const CACHE = "cdo-v2";
+const SHELL = ["./", "index.html", "styles.css", "app.js", "admin.js", "xlsx.js", "icon.svg", "logo.png", "logo-mark.png", "manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

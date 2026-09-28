@@ -150,7 +150,7 @@
     $("#screen-app").hidden = false;
     document.body.classList.add("has-app");
     $$("[data-restaurant]").forEach((n) => (n.textContent = me.settings.restaurant || "Restaurant"));
-    $("#today").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    $("#today").textContent = new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
     $("#btn-items").hidden = !isAdmin();
     $$("[data-admin]").forEach((b) => (b.hidden = !isAdmin()));
     $("#menu-user").textContent = `${me.user.username} · ${me.user.role === "admin" ? "Admin" : "Chef"}`;

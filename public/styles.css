@@ -66,7 +66,8 @@ textarea { padding: 10px 14px; }
 .auth { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
 .auth-box { width: min(380px, 100%); display: grid; gap: 14px; text-align: left; }
 .auth-box > h1, .auth-box > h2, .auth-box > p.muted { text-align: center; }
-.brand-name { color: var(--red); font-size: 34px; letter-spacing: .08em; }
+.login-logo { display: block; width: min(260px, 70vw); height: auto; margin: 0 auto -4px; }
+.login-sub { margin: 0; font-size: 17px; letter-spacing: .12em; text-transform: uppercase; }
 
 /* ── Header ── */
 .top {
@@ -75,7 +76,9 @@ textarea { padding: 10px 14px; }
   padding: calc(10px + env(safe-area-inset-top)) 16px 0;
 }
 .brand { display: flex; justify-content: space-between; align-items: center; gap: 10px; max-width: 760px; margin: 0 auto; }
-.brand h1 { font-size: 18px; color: var(--red-text); }
+.brand h1 { font-size: 20px; color: var(--red-text); }
+.header-logo { width: 36px; height: auto; flex: 0 0 auto; }
+.brand-text { flex: 1 1 auto; min-width: 0; }
 .brand p { margin: 2px 0 0; font-size: 13px; }
 .top-actions { display: flex; gap: 6px; }
 .search-wrap { max-width: 760px; margin: 10px auto 0; }
