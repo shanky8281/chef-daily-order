@@ -1,0 +1,7 @@
+# Server secrets — never in GitHub
+public/api/config.php
+*.json.key
+service-account*.json
+
+node_modules/
+.DS_Store

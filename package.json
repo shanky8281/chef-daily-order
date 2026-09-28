@@ -1,0 +1,11 @@
+{
+  "name": "chef-daily-order",
+  "private": true,
+  "description": "Browser tests for the Chef Daily Order app (the app itself needs no build step).",
+  "scripts": {
+    "test": "php tests/run.php && node tests/browser.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

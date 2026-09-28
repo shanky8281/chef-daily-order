@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Version | 1.0 (approved) |
+| Version | 1.1 (approved; §11 lists changes made during Build) |
 | Status | Approved by Shankar, 2026-09-28 |
 | Implements | [Requirements v1.0](01-requirements.md) |
 | Stage | 2 of 5 — Requirements → **Design** → Build → Test → Deploy |
@@ -32,9 +32,8 @@ Requirement IDs (F1…, N1…) are given in brackets so every design choice can 
   origin, so the login cookie works on every phone browser.
 * **No build step, no frameworks.** Plain HTML, CSS and JavaScript in the browser; plain PHP 8
   with PDO on the server. Nothing to install on cPanel. [N7]
-* **One vendored library:** SheetJS (`xlsx.full.min.js`) for reading and writing Excel files in
-  the item manager. It is stored in the repository, not loaded from a CDN, and only downloaded
-  when an admin opens import/export. [F28]
+* **No third-party code at all.** Excel files are read and written by a small built-in
+  `xlsx.js`, downloaded only when an admin opens the item manager. [F28] (See §11, change 2.)
 
 ---
 
@@ -127,13 +126,13 @@ Chefs see only their own; admins see everyone's with a chef filter. Loaded from 
 └────────────────────────────┘
 ```
 Tap an item → **Edit item** sheet:
-Spanish name* · English name · Category ▾ · Unit ▾ (kg, g, unit, bunch, l, ml, box, pack, sack, dozen) ·
+Spanish name* · English name · Category ▾ · Unit ▾ (kg, g, l, ml, unit, bunch, box, pack, sack, dozen, can, roll, tray) ·
 Price (CLP) · Price source (Market / Manual) · Market keywords (Market only) ·
 `[Save]` `[Delete]` · "Last changed by Shankar, 28 Sep 14:02". [F24, F29, F30]
 
 * **Delete** hides the item (restorable from *Show deleted*). [F25]
 * **Categories** sheet: add, rename (Spanish + English + icon), drag or ↑↓ to reorder, remove
-  (asks first if it still has items; its items must be moved or deleted first). [F26]
+  (asks first if it still has items; if confirmed, its items are deleted with it and both can be restored). [F26]
 * **↑↓** moves an item within its category. [F27]
 * **Import** → pick .xlsx or .csv → preview table: *new* (green), *changed* (yellow, old → new),
   *unchanged* (grey), *errors* (red, row not imported) → `[Import N items]`. [F28]
@@ -163,7 +162,8 @@ settings (key → value)      login_attempts (per username)      schema_version
 
 | Table | Columns (key ones) | Notes |
 |---|---|---|
-| **users** | id, username (unique), email, password_hash, role (`admin`/`chef`), active, failed_logins, locked_until, created_at, last_login_at | bcrypt hash [N6]; lockout fields [F7] |
+| **users** | id, username (unique), email, password_hash, role (`admin`/`chef`), active, created_at, last_login_at | bcrypt hash [N6] |
+| **login_attempts** | username, failures, locked_until, updated_at | lockout [F7], for known and unknown usernames alike |
 | **sessions** | id, token_hash (unique), user_id, created_at, expires_at, last_seen_at, user_agent | cookie holds the token; DB stores only its SHA-256 [F6] |
 | **password_resets** | id, token_hash, user_id, expires_at, used_at | 1-hour, single use [F5] |
 | **categories** | id, name_es, name_en, icon, sort, deleted_at | [F26] |
@@ -299,17 +299,16 @@ Admin screens (items, users, settings) need a connection and say so when offline
 ```
 chef-daily-order/
 ├── public/                 → uploaded to the buy.mirchi.cl web folder (root)
-│   ├── index.html  app.js  styles.css  sw.js  manifest.webmanifest  icon.svg
-│   ├── vendor/xlsx.full.min.js
+│   ├── index.html  app.js  admin.js  xlsx.js  styles.css  sw.js  manifest.webmanifest  icon.svg
 │   ├── .htaccess           HTTPS, caching, security headers
 │   └── api/
 │       ├── index.php       single entry point, routes §4
 │       ├── lib/            db.php auth.php items.php orders.php users.php sheets.php mail.php
-│       ├── cron/           sync-sheet.php  market-prices.php   (command line only)
+│       ├── cron/           sync-sheet.php  market-prices.php  create-admin.php   (command line only)
 │       ├── migrations/     001_schema.sql  002_seed_items.sql …
 │       ├── config.sample.php
 │       └── .htaccess       only index.php reachable from the web
-├── tests/                  PHP tests + browser tests (Stage 4)
+├── tests/                  run.php + *_test.php (API), browser.cjs (browser), router.php (local server)
 ├── docs/                   01-requirements.md  02-design.md  …
 └── .github/workflows/
     ├── test.yml            runs the tests on every push
@@ -335,7 +334,7 @@ chef-daily-order/
 |---|---|---|
 | D1 | Order number format | `260928-RA-1` (date – chef code – number) |
 | D2 | Category names | Shown as **Spanish / English** like items, e.g. "Verduras / Vegetables" |
-| D3 | Units list | kg, g, unit, bunch, l, ml, box, pack, sack, dozen — admins can't add new units without a code change. OK? |
+| D3 | Units list | kg, g, unit, bunch, l, ml, box, pack, sack, dozen (+ can, roll, tray — §11) — admins can't add new units without a code change |
 | D4 | Reset e-mail sender | `no-reply@mirchi.cl` (a cPanel mailbox you create) |
 | D5 | Minimum password length | 8 characters |
 | D6 | Starting item list | The recovered 102 items / 11 categories (requirement F31 said ≈120 / 8 — I'll correct F31 to match) |
@@ -347,3 +346,15 @@ chef-daily-order/
 |---|---|---|
 | 0.1 | 2026-09-28 | First draft for review |
 | 1.0 | 2026-09-28 | Approved, including decisions D1–D7 |
+| 1.1 | 2026-09-28 | Changes made during Build, listed in §11 |
+
+## 11. Changes made during Build
+
+| # | Change | Why |
+|---|---|---|
+| 1 | Units list also has **can, roll, tray** (D3). Pack sizes moved into the English name, e.g. "Mineral water 500 ml (pack of 12)". | The recovered item list uses them (coconut milk, foil, eggs). |
+| 2 | **SheetJS replaced by a built-in `xlsx.js`** (≈150 lines: first sheet, text and numbers). | The official SheetJS download is unreachable from the build environment, and the copy on npm (0.18.5) has known security flaws. No third-party code is now shipped. |
+| 3 | Lockout counters live in a **`login_attempts`** table instead of columns on `users`. | Counts wrong passwords for unknown usernames too, so answers never reveal which accounts exist. |
+| 4 | Prices typed or imported **the Chilean way** ("1.200", "$1.300") are read as whole pesos. | Typing "1.200" in the item form would otherwise save $1. |
+| 5 | Removing a category that still has items: after confirming, **its items are deleted with it** (both restorable). | Simpler than forcing the admin to move every item first; nothing is lost. |
+| 6 | Adding a user **without a password** e-mails them a link to choose one. | Admins never need to know or send chefs' passwords. |

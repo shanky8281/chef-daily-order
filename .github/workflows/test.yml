@@ -1,0 +1,50 @@
+# Runs every test on each push and pull request: PHP/API tests, then browser tests.
+name: Test
+
+on:
+  push:
+    branches-ignore: [main]   # main is tested by deploy.yml before uploading
+  pull_request:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: cdo_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      CDO_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=cdo_test;charset=utf8mb4
+      CDO_TEST_USER: root
+      CDO_TEST_PASSWORD: root
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, curl, openssl, mbstring, intl
+          coverage: none
+
+      - name: PHP syntax
+        run: find public tests -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: API tests
+        run: php tests/run.php
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Browser tests
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node tests/browser.cjs
