@@ -83,7 +83,7 @@ textarea { padding: 10px 14px; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
   flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
-  height: 40px; padding: 0 14px; border-radius: 999px;
+  height: 44px; padding: 0 14px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--surface); font-size: 15px; font-weight: 600; white-space: nowrap;
 }
 .tab.active { background: var(--red); border-color: var(--red); color: #fff; }

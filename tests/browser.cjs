@@ -36,11 +36,18 @@ function startServer() {
   const BASE = server.base;
   const browser = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
   const downloads = fs.mkdtempSync(path.join(os.tmpdir(), "cdo-dl-"));
+  const pages = [];
   const newPhone = async () => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
     const page = await ctx.newPage();
     page.errors = [];
     page.on("pageerror", (e) => page.errors.push(e.message));
+    // Kept for the failure report: the last answers from the server.
+    page.apiLog = [];
+    page.on("response", (r) => {
+      if (r.url().includes("/api/")) page.apiLog.push(`${r.status()} ${r.request().method()} ${r.url().replace(BASE, "")}`);
+    });
+    pages.push(page);
     // WhatsApp opens in a new window; remember the address instead.
     await page.addInitScript(() => { window.open = (url) => { window.__opened = url; return null; }; });
     page.on("dialog", (d) => d.accept(page.nextPrompt ?? undefined));
@@ -72,6 +79,21 @@ function startServer() {
     check("F1 admin reaches the order page", await a.isVisible("#screen-app"));
     check("F23 admin sees the Items button", await a.isVisible("#btn-items"));
 
+    // ── Usability & security basics (N1, N6) ──
+    console.log("\n── touch targets & security");
+    const small = await a.$$eval("button:not([hidden]), input.qty", (els) => els
+      .filter((e) => e.offsetParent !== null && !e.closest("dialog"))
+      .map((e) => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim() || e.className, w: Math.round(r.width), h: Math.round(r.height) }; })
+      .filter((r) => r.w < 44 || r.h < 44));
+    check("N1 every button on the order page is at least 44×44 px", small.length === 0, small.slice(0, 5));
+    const heads = await a.evaluate(async () => {
+      const r = await fetch("api/auth/me");
+      return { nosniff: r.headers.get("x-content-type-options"), cache: r.headers.get("cache-control") };
+    });
+    check("N6 API answers are never cached and not sniffed", heads.nosniff === "nosniff" && heads.cache === "no-store", heads);
+    const cookie = (await adminCtx.cookies()).find((k) => k.name === "cdo_session");
+    check("N6 session cookie is HttpOnly and SameSite=Lax", cookie && cookie.httpOnly && cookie.sameSite === "Lax", cookie);
+
     // ── Order page (F8–F15) ──
     console.log("\n── order page");
     const first = a.locator(".item").first();
@@ -93,6 +115,18 @@ function startServer() {
     await first.locator(".qty").fill("2,5");
     await a.click('.item[data-id="3"] [data-act=inc]');
     await a.click('.item[data-id="3"] [data-act=inc]');
+    check("F12 decimal typed with a comma, and + adds whole units", (await first.locator(".qty").inputValue()) === "2,5"
+      && (await a.locator('.item[data-id="3"] .qty').inputValue()) === "2");
+    await a.click('.item[data-id="3"] [data-act=dec]');
+    check("F12 − removes one unit", (await a.locator('.item[data-id="3"] .qty').inputValue()) === "1");
+    await a.click('.item[data-id="3"] [data-act=inc]');
+    const install = await a.evaluate(async () => {
+      const link = document.querySelector('link[rel="manifest"]');
+      const m = await (await fetch(link.href)).json();
+      const sw = await fetch("sw.js");
+      return { name: m.name, display: m.display, icons: m.icons.length, sw: sw.ok };
+    });
+    check("N4 installable: manifest (standalone, icon) and offline worker are served", install.display === "standalone" && install.icons > 0 && install.sw, install);
     check("F13 totals update", (await a.textContent("#sum-items")) === "2 items" && (await a.textContent("#sum-total")).includes("4.611"), await a.textContent("#sum-total"));
     await a.click('.tab[data-tab="mine"]');
     check("F14 My list shows only filled items", (await a.locator(".item:not([hidden])").count()) === 2);
@@ -124,8 +158,8 @@ function startServer() {
 
     // ── Past orders (F22) ──
     console.log("\n── past orders");
-    await a.click("#dlg-review [data-close]").catch(() => {});
-    await a.click("#btn-new").catch(() => {});
+    await a.click("#dlg-review [data-close]", { timeout: 1000 }).catch(() => {});
+    await a.click("#btn-new", { timeout: 1000 }).catch(() => {});
     await a.evaluate(() => { localStorage.removeItem("cdo.draft.1"); });
     await a.reload();
     await a.waitForSelector(".item");
@@ -160,7 +194,7 @@ function startServer() {
     await a.click("#adm-items .sheet-head .icon-btn");
     await a.waitForTimeout(500);
     await a.fill("#search", "parsnip");
-    check("F33 new item on the order page after closing the manager", (await a.$$eval(".item:not([hidden]) .meta span", (e) => e[0]?.textContent)) === "$1.800/kg");
+    check("F24 new item on the order page after closing the manager", (await a.$$eval(".item:not([hidden]) .meta span", (e) => e[0]?.textContent)) === "$1.800/kg");
     await a.fill("#search", "");
 
     // Export then import the same file: nothing changes (F28).
@@ -200,6 +234,18 @@ function startServer() {
     await a.fill("#search", "rucula");
     check("F25 deleted item leaves the order page", (await a.locator(".item:not([hidden])").count()) === 0);
     await a.fill("#search", "");
+
+    // An item name that looks like code must show as plain text (N6).
+    const evil = '<img src=x onerror="window.__xss=1">';
+    const made = await api(a, "items", { method: "POST", body: { es: evil, en: "test", unit: "kg", price: 1, categoryId: 1 } });
+    await a.reload();
+    await a.waitForSelector(".item");
+    const shown = await a.locator(`.item[data-id="${made.body.id}"] .es`).textContent();
+    check("N6 item names are shown as text, never run as code", shown === evil && (await a.evaluate(() => window.__xss)) === undefined
+      && (await a.locator(".item img").count()) === 0, shown);
+    await api(a, `items/${made.body.id}`, { method: "DELETE", body: {} });
+    await a.reload();
+    await a.waitForSelector(".item");
 
     // ── Settings (F19) ──
     console.log("\n── settings & users");
@@ -269,6 +315,55 @@ function startServer() {
     await c.waitForSelector(".item");
     check("F5 log in with the new password", true);
 
+    // Session ends while an order waits on the phone (F17): log in again, then it uploads.
+    console.log("\n── session ends while offline");
+    await chefCtx.setOffline(true);
+    await c.locator(".item").first().locator(".qty").fill("4");
+    await c.click("#btn-review");
+    await c.click("#btn-whatsapp");
+    await c.click("#dlg-review [data-close]");
+    await c.waitForSelector("#outbox-note:not([hidden])");
+    const pedro = (await api(a, "users")).body.users.find((u) => u.username === "Pedro");
+    await api(a, `users/${pedro.id}/reset`, { method: "POST", body: { password: "pedro-pass-4" } });   // ends Pedro's sessions
+    await chefCtx.setOffline(false);
+    await c.evaluate(() => window.dispatchEvent(new Event("online")));
+    await c.waitForSelector("#login-form:not([hidden])");
+    const msg = await c.textContent("#login-form .form-error");
+    check("F17 expired session: the chef is asked to log in to upload the waiting order", msg === "Please log in again to upload 1 waiting order.", msg);
+    await c.fill("#login-form [name=password]", "pedro-pass-4");
+    await c.click("#login-form button.primary");
+    await c.waitForSelector(".item");
+    await c.waitForFunction((id) => JSON.parse(localStorage.getItem(`cdo.outbox.${id}`) || "[]").length === 0, pedro.id);
+    const pedroOrders = (await api(a, `orders?user=${pedro.id}`)).body.orders;
+    check("F17 after logging in, the waiting order uploads once", pedroOrders.length === 1 && pedroOrders[0].chef === "Pedro", pedroOrders);
+
+    // Load time on a 4G connection (N5): a new phone with an empty cache.
+    console.log("\n── speed on 4G");
+    const { ctx: slowCtx, page: f } = await newPhone();
+    const cdp = await slowCtx.newCDPSession(f);
+    await cdp.send("Network.enable");
+    await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 100, downloadThroughput: 9e6 / 8, uploadThroughput: 1.5e6 / 8 });
+    let t0 = Date.now();
+    await f.goto(BASE + "/");
+    await f.waitForSelector("#login-form:not([hidden])");
+    const tLogin = Date.now() - t0;
+    await f.fill("#login-form [name=username]", "Pedro");
+    await f.fill("#login-form [name=password]", "pedro-pass-4");
+    t0 = Date.now();
+    await f.click("#login-form button.primary");
+    await f.waitForSelector(".item");
+    const tList = Date.now() - t0;
+    t0 = Date.now();
+    await f.reload();
+    await f.waitForSelector(".item");
+    const tReopen = Date.now() - t0;
+    console.log(`        4G (9 Mbps, 100 ms): login page ${tLogin} ms · log in → item list ${tList} ms · reopen logged in ${tReopen} ms`);
+    check("N5 login page loads in under 2 s on 4G", tLogin < 2000, tLogin);
+    check("N5 item list appears in under 2 s after logging in on 4G", tList < 2000, tList);
+    check("N5 reopening the page (logged in) takes under 2 s on 4G", tReopen < 2000, tReopen);
+    check("no JavaScript errors (4G phone)", f.errors.length === 0, f.errors);
+    await slowCtx.close();
+
     check("no JavaScript errors (admin)", a.errors.length === 0, a.errors);
     check("no JavaScript errors (chef)", c.errors.length === 0, c.errors);
     await chefCtx.close();
@@ -276,6 +371,18 @@ function startServer() {
   } catch (e) {
     failures++;
     console.log("  FAIL  crashed: " + e.message);
+    // What each open page was showing, to find the cause without a screenshot.
+    for (const [i, p] of pages.entries()) {
+      if (p.isClosed()) continue;
+      const state = await p.evaluate(() => ({
+        login: !document.querySelector("#screen-login").hidden, app: !document.querySelector("#screen-app").hidden,
+        errors: Array.from(document.querySelectorAll(".form-error")).map((e) => e.textContent).filter(Boolean),
+        toast: document.querySelector("#toast").textContent, items: document.querySelectorAll(".item").length,
+      })).catch((err) => ({ unreadable: err.message }));
+      console.log(`        page ${i + 1}: ${JSON.stringify(state)}`);
+      console.log(`        page ${i + 1} JS errors: ${JSON.stringify(p.errors)}`);
+      console.log(`        page ${i + 1} last API answers:\n          ${p.apiLog.slice(-8).join("\n          ")}`);
+    }
   } finally {
     await browser.close();
     server.proc.kill();
