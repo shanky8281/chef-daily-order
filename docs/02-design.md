@@ -2,7 +2,8 @@
 
 | | |
 |---|---|
-| Version | 0.1 (draft for review) |
+| Version | 1.0 (approved) |
+| Status | Approved by Shankar, 2026-09-28 |
 | Implements | [Requirements v1.0](01-requirements.md) |
 | Stage | 2 of 5 — Requirements → **Design** → Build → Test → Deploy |
 
@@ -328,7 +329,7 @@ chef-daily-order/
 
 ---
 
-## 9. Decisions needing your OK
+## 9. Decisions (approved)
 
 | # | Decision | Proposal |
 |---|---|---|
@@ -345,3 +346,4 @@ chef-daily-order/
 | Version | Date | Change |
 |---|---|---|
 | 0.1 | 2026-09-28 | First draft for review |
+| 1.0 | 2026-09-28 | Approved, including decisions D1–D7 |

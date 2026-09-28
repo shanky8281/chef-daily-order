@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Version | 1.0 (approved) |
+| Version | 1.1 (approved) |
 | Status | Approved by Shankar, 2026-09-28 |
 | Stage | 1 of 5 — Requirements → Design → Build → Test → Deploy |
 
@@ -77,7 +77,7 @@ The first admin user is **Shankar**.
 | F28 | **Bulk import** from Excel or CSV, showing a preview of what will be added or changed before saving. Admins can also export the current list to Excel. |
 | F29 | Price source per item: **Market**, updated daily from ODEPA (Santiago wholesale markets), or **Manual**, set by an admin. |
 | F30 | Every item change records who made it and when. |
-| F31 | The starting list is the previous item list (about 120 items in 8 categories), with Spanish and English names. |
+| F31 | The starting list is the previous item list (102 items in 11 categories), with Spanish and English names. |
 
 ## 4. Non-functional requirements
 
@@ -115,3 +115,4 @@ several restaurants, languages other than English and Spanish names.
 | 0.2 | 2026-09-28 | Login and users; item management; Spanish-first item names |
 | 0.3 | 2026-09-28 | Everything on buy.mirchi.cl (cPanel); open questions answered |
 | 1.0 | 2026-09-28 | Approved |
+| 1.1 | 2026-09-28 | F31 corrected to the recovered list: 102 items, 11 categories (design decision D6) |

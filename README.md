@@ -9,7 +9,7 @@ Built stage by stage (waterfall):
 | Stage | Document | Status |
 |---|---|---|
 | 1. Requirements | [docs/01-requirements.md](docs/01-requirements.md) | Approved |
-| 2. Design | [docs/02-design.md](docs/02-design.md) | In review |
-| 3. Build | — | |
+| 2. Design | [docs/02-design.md](docs/02-design.md) | Approved |
+| 3. Build | — | In progress |
 | 4. Test | — | |
 | 5. Deploy | — | |
