@@ -41,7 +41,10 @@ $sock = stream_socket_server('tcp://127.0.0.1:0');
 $port = (int)explode(':', stream_socket_get_name($sock, false))[1];
 fclose($sock);
 $server = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", '-t', "$root/public", "$root/tests/router.php"],
-    [1 => ['file', "$tmp/server.log", 'a'], 2 => ['file', "$tmp/server.log", 'a']], $pipes, $root, ['CDO_CONFIG' => $config] + getenv());
+    [1 => ['file', "$tmp/server.log", 'a'], 2 => ['file', "$tmp/server.log", 'a']], $pipes, $root,
+    // Several workers, like the real server: with one, a browser's unused spare connection can
+    // stall the next request for up to 30 s (seen once on GitHub with Chrome 153).
+    ['CDO_CONFIG' => $config, 'PHP_CLI_SERVER_WORKERS' => '4'] + getenv());
 register_shutdown_function(function () use ($server, $tmp) {
     proc_terminate($server);
     array_map('unlink', glob("$tmp/*") ?: []);
