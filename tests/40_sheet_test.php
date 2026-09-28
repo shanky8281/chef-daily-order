@@ -3,6 +3,19 @@
 
 class FakeSheets
 {
+    /** Like Google: refuse values wider than the range they are written to ("A1", "A1:L1", "A:L"). */
+    private static function fits(string $path, array $values): void
+    {
+        preg_match("#!([A-Z]+)\d*(?::([A-Z]+)\d*)?#", $path, $m);
+        $col = fn($l) => array_reduce(str_split($l), fn($n, $c) => $n * 26 + ord($c) - 64, 0);
+        $width = $col($m[2] ?? $m[1]) - $col($m[1]) + 1;
+        foreach ($values as $row) {
+            if (count($row) > $width) {
+                throw new RuntimeException("Google error 400: Requested writing within range [" . explode('?', explode('/values/', $path)[1])[0] . "], but tried writing to column beyond it");
+            }
+        }
+    }
+
     public array $tabs = ['Sheet1' => []];
     public bool $down = false;
     public int $appends = 0;
@@ -21,11 +34,16 @@ class FakeSheets
         $tab = $m[1];
         if (str_contains($path, ':append')) {
             if ($this->down) throw new RuntimeException('Google is down');
+            self::fits($path, $body['values']);
             $this->appends++;
             array_push($this->tabs[$tab], ...$body['values']);
             return [];
         }
-        if ($method === 'PUT') { $this->tabs[$tab][0] = $body['values'][0]; return []; }
+        if ($method === 'PUT') {
+            self::fits($path, $body['values']);
+            $this->tabs[$tab][0] = $body['values'][0];
+            return [];
+        }
         return $this->tabs[$tab] ? ['values' => [$this->tabs[$tab][0]]] : [];
     }
 }

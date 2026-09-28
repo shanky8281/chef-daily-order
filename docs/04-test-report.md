@@ -85,6 +85,7 @@ Found while writing and running the tests. All are fixed and covered by a check.
 | 6 | Quantity boxes were far too wide on phones and squeezed the item names. | Screenshot during build | Style priority fixed; boxes are 62 px wide. |
 | 7 | Category tabs were 40 px tall, below the 44 px touch-target size. | Browser test N1 | Tabs are 44 px. |
 | 8 | Report showed "Cebolla morada (Onion (red))". | Screenshot during build | Brackets inside the English name are dropped: "Cebolla morada (Onion red)". |
+| 9 | **Found live (Stage 5):** the first copy to the real Google Sheet failed — the header row was written to range `A1`, and Google refuses 12 columns there. The test stand-in did not check range widths. No orders were lost (they waited in the database). | Settings → sync error on buy.mirchi.cl | Header written to `A1:L1`. The stand-in now refuses writes wider than their range, like Google; with the old code it reproduces the exact error. |
 
 No defects are open.
 
