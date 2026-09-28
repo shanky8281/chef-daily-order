@@ -93,9 +93,9 @@ function ensure_tab($sheets, string $id, string $tab): void
         $sheets->call('POST', rawurlencode($id) . ':batchUpdate', ['requests' => [['addSheet' => ['properties' => [
             'title' => $tab, 'gridProperties' => ['frozenRowCount' => 1]]]]]]);
     }
-    $range = rawurlencode("'$tab'!A1:A1");
-    if (empty($sheets->call('GET', rawurlencode($id) . "/values/$range")['values'])) {
-        $sheets->call('PUT', rawurlencode($id) . "/values/$range?valueInputOption=RAW", ['values' => [SHEET_HEADER]]);
+    if (empty($sheets->call('GET', rawurlencode($id) . '/values/' . rawurlencode("'$tab'!A1:A1"))['values'])) {
+        // The range must be as wide as the header (A1:L1); Google refuses to write past it.
+        $sheets->call('PUT', rawurlencode($id) . '/values/' . rawurlencode("'$tab'!A1:L1") . '?valueInputOption=RAW', ['values' => [SHEET_HEADER]]);
     }
 }
 
