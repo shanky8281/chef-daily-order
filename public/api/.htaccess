@@ -1,0 +1,11 @@
+# Only index.php is reachable from the web; every /api/... URL is routed to it.
+Options -Indexes
+<FilesMatch "\.(php|sql|json|md|log)$">
+    Require all denied
+</FilesMatch>
+<Files "index.php">
+    Require all granted
+</Files>
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]

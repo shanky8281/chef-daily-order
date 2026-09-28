@@ -1,0 +1,57 @@
+# Uploads public/ to buy.mirchi.cl after the tests pass on main (design §8).
+# Needs repository secrets FTP_SERVER, FTP_USERNAME, FTP_PASSWORD; until they exist the upload is skipped.
+# The FTP account's folder must be the buy.mirchi.cl web folder. api/config.php on the server is
+# never overwritten or deleted.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check FTP secrets
+        id: secrets
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run: |
+          if [ -z "$FTP_SERVER" ]; then
+            echo "FTP secrets not set yet; nothing uploaded." >> "$GITHUB_STEP_SUMMARY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+
+      - name: Upload public/ to buy.mirchi.cl
+        if: steps.secrets.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./public/
+          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
+          exclude: |
+            api/config.php
+            **/.git*
+            **/.git*/**
+
+      - name: Summary
+        if: steps.secrets.outputs.ready == 'true'
+        run: echo "Uploaded public/ to buy.mirchi.cl" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,25 @@
+# Chef Daily Order — buy.mirchi.cl
+Options -Indexes
+RewriteEngine On
+
+# HTTPS only (design §7)
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "same-origin"
+    Header always set X-Frame-Options "DENY"
+    Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    # App files must always be checked for updates; the service worker keeps an offline copy.
+    <FilesMatch "\.(html|js|css|webmanifest)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
+
+# Deploy leftovers are never served.
+<FilesMatch "^\.ftp-deploy-sync-state\.json$">
+    Require all denied
+</FilesMatch>
