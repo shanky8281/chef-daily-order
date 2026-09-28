@@ -17,7 +17,8 @@ Everything happens in **cPanel**, **Google Cloud** and **GitHub**. About 45 minu
 ## Step 1 — Subdomain and HTTPS (cPanel)
 
 1. **Domains → Create A New Domain** → `buy.mirchi.cl`. Untick "Share document root".
-   Note the **document root** it proposes, e.g. `/home/CPANELUSER/buy.mirchi.cl`. This is the **web folder**.
+   Note the **document root** it proposes, e.g. `public_html/buy.mirchi.cl` (for Mirchi) or `buy.mirchi.cl`.
+   This is the **web folder**; the steps below write it as `WEBFOLDER`.
 2. **SSL/TLS Status** → tick `buy.mirchi.cl` → **Run AutoSSL**. Wait until it shows a valid certificate.
 3. **MultiPHP Manager** → tick `buy.mirchi.cl` → PHP **8.2** or newer → Apply.
 4. **Select PHP Version → Extensions** (if your host has it): make sure `pdo_mysql`, `curl`, `openssl`,
@@ -54,7 +55,9 @@ Skip to 4.5 if you already have a service-account JSON key you want to use.
 ## Step 5 — Automatic upload from GitHub
 
 1. **cPanel → FTP Accounts → Add FTP Account**: login `deploy`, a long generated password,
-   **Directory = the web folder from Step 1** (e.g. `buy.mirchi.cl`). Create.
+   **Directory = the web folder from Step 1**, exactly (e.g. `public_html/buy.mirchi.cl`). Create.
+   ⚠️ cPanel fills in its own folder, like `public_html/buy.mirchi.cl/deploy`. Replace it; otherwise the
+   app is uploaded one folder too deep and opens at `buy.mirchi.cl/deploy/` instead of `buy.mirchi.cl`.
    Under "Configure FTP Client" note the **FTP server** name (often `ftp.mirchi.cl`) and the full username (`deploy@mirchi.cl`).
 2. **GitHub → `shanky8281/chef-daily-order` → Settings → Secrets and variables → Actions → New repository secret**, three times:
 
@@ -88,11 +91,11 @@ If your cPanel has no Terminal, ask your host to enable "Shell access", or tell 
 
 1. Which PHP: `php -v` must say 8.1 or newer. If not, use the full path, e.g.
    `/opt/cpanel/ea-php82/root/usr/bin/php` instead of `php` below.
-2. Self-check: `php ~/buy.mirchi.cl/api/cron/check.php`
+2. Self-check: `php ~/WEBFOLDER/api/cron/check.php` — for Mirchi: `php ~/public_html/buy.mirchi.cl/api/cron/check.php`
    Every line must show ✔ (it explains how to fix any ✘). This also creates the tables.
-3. Your admin login: `php ~/buy.mirchi.cl/api/cron/create-admin.php Shankar shan8281@gmail.com`
+3. Your admin login: `php ~/WEBFOLDER/api/cron/create-admin.php Shankar shan8281@gmail.com`
    It asks for the password twice (at least 8 characters; typing is invisible).
-4. First market prices: `php ~/buy.mirchi.cl/api/cron/market-prices.php` → "Updated N market prices".
+4. First market prices: `php ~/WEBFOLDER/api/cron/market-prices.php` → "Updated N market prices".
 
 ## Step 8 — Scheduled jobs (cPanel → Cron Jobs)
 
@@ -100,8 +103,8 @@ Add two jobs (use the same `php` as in Step 7):
 
 | When | Command |
 |---|---|
-| Every 30 minutes (`*/30 * * * *`) | `php /home/CPANELUSER/buy.mirchi.cl/api/cron/sync-sheet.php > /dev/null 2>&1` |
-| Once a day (`30 10 * * *`) | `php /home/CPANELUSER/buy.mirchi.cl/api/cron/market-prices.php > /dev/null 2>&1` |
+| Every 30 minutes (`*/30 * * * *`) | `php /home/CPANELUSER/WEBFOLDER/api/cron/sync-sheet.php > /dev/null 2>&1` |
+| Once a day (`30 10 * * *`) | `php /home/CPANELUSER/WEBFOLDER/api/cron/market-prices.php > /dev/null 2>&1` |
 
 Cron times are in the **server's** time zone, which is often UTC: `30 10 * * *` is 06:30–07:30 in Chile.
 ODEPA publishes the previous day's prices, so any early-morning time is fine.
