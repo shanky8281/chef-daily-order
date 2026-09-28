@@ -4,6 +4,7 @@
  * Checks PHP, extensions, config.php, the database, the Google key and sheet, mail settings.
  * Changes nothing except creating the database tables on first run. */
 declare(strict_types=1);
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit; }
 
 $ok = true;
 function line(bool $pass, string $what, string $hint = ''): void
@@ -21,7 +22,6 @@ foreach (['pdo_mysql', 'curl', 'openssl', 'mbstring', 'json'] as $ext) {
 line(extension_loaded('intl'), 'PHP extension intl (search ignores accents on the server)', 'Optional but recommended: turn on "intl" in Select PHP Version → Extensions.');
 if (!$ok && !extension_loaded('pdo_mysql')) exit(1);
 
-if (PHP_SAPI !== 'cli') { http_response_code(403); exit; }
 foreach (['core', 'auth', 'catalog', 'orders', 'admin', 'sheets', 'market'] as $lib) require __DIR__ . "/../lib/$lib.php";
 
 $cfgFile = getenv('CDO_CONFIG') ?: __DIR__ . '/../config.php';
