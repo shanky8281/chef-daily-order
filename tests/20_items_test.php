@@ -31,8 +31,8 @@ check('F24 admin adds an item (price typed the Chilean way, "1.200")', $s === 20
 $radish = $r['id'];
 [$s, $cat] = $chef->get('catalog');
 $last = array_values(array_filter($cat['items'], fn($i) => $i['categoryId'] === $veg));
-check('F33 new item shows for chefs, at the end of its category', end($last)['id'] === $radish && end($last)['price'] === 1200, end($last));
-check('F33 list version changes', $cat['version'] !== $version);
+check('F24 new item shows for chefs, at the end of its category', end($last)['id'] === $radish && end($last)['price'] === 1200, end($last));
+check('F24 list version changes', $cat['version'] !== $version);
 
 // Edit (F24) and history (F30)
 [$s] = $admin->put("items/$radish", ['es' => 'Rabanito', 'en' => 'Radish', 'unit' => 'bunch', 'price' => 800, 'categoryId' => $veg]);

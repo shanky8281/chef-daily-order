@@ -10,8 +10,8 @@ Built stage by stage (waterfall):
 |---|---|---|
 | 1. Requirements | [docs/01-requirements.md](docs/01-requirements.md) | Approved |
 | 2. Design | [docs/02-design.md](docs/02-design.md) | Approved (v1.1: build changes in §11) |
-| 3. Build | this repository | In review |
-| 4. Test | — | |
+| 3. Build | this repository | Done |
+| 4. Test | [docs/04-test-plan.md](docs/04-test-plan.md), [docs/04-test-report.md](docs/04-test-report.md) | In review |
 | 5. Deploy | — | |
 
 ## What's where
@@ -21,7 +21,7 @@ Built stage by stage (waterfall):
 | `public/` | Everything uploaded to buy.mirchi.cl. Plain HTML/CSS/JS, no build step. |
 | `public/api/` | The server: PHP 8, one entry point (`index.php`), libraries in `lib/`, database changes in `migrations/` (run automatically), command-line jobs in `cron/`. |
 | `tests/` | `run.php` + `*_test.php` (API tests), `browser.cjs` (browser tests), `router.php` (local server). |
-| `docs/` | Requirements and design. |
+| `docs/` | Requirements, design, test plan and test report. |
 
 ## Run it on your computer
 
