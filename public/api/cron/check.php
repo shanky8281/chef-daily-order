@@ -1,6 +1,6 @@
 <?php
 /* Server self-check for the deployment (docs/05-deploy-guide.md). Run from cPanel Terminal:
- *     php ~/buy.mirchi.cl/api/cron/check.php
+ *     php ~/public_html/buy.mirchi.cl/api/cron/check.php
  * Checks PHP, extensions, config.php, the database, the Google key and sheet, mail settings.
  * Changes nothing except creating the database tables on first run. */
 declare(strict_types=1);
