@@ -36,11 +36,18 @@ function startServer() {
   const BASE = server.base;
   const browser = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
   const downloads = fs.mkdtempSync(path.join(os.tmpdir(), "cdo-dl-"));
+  const pages = [];
   const newPhone = async () => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, acceptDownloads: true });
     const page = await ctx.newPage();
     page.errors = [];
     page.on("pageerror", (e) => page.errors.push(e.message));
+    // Kept for the failure report: the last answers from the server.
+    page.apiLog = [];
+    page.on("response", (r) => {
+      if (r.url().includes("/api/")) page.apiLog.push(`${r.status()} ${r.request().method()} ${r.url().replace(BASE, "")}`);
+    });
+    pages.push(page);
     // WhatsApp opens in a new window; remember the address instead.
     await page.addInitScript(() => { window.open = (url) => { window.__opened = url; return null; }; });
     page.on("dialog", (d) => d.accept(page.nextPrompt ?? undefined));
@@ -151,8 +158,8 @@ function startServer() {
 
     // ── Past orders (F22) ──
     console.log("\n── past orders");
-    await a.click("#dlg-review [data-close]").catch(() => {});
-    await a.click("#btn-new").catch(() => {});
+    await a.click("#dlg-review [data-close]", { timeout: 1000 }).catch(() => {});
+    await a.click("#btn-new", { timeout: 1000 }).catch(() => {});
     await a.evaluate(() => { localStorage.removeItem("cdo.draft.1"); });
     await a.reload();
     await a.waitForSelector(".item");
@@ -364,6 +371,18 @@ function startServer() {
   } catch (e) {
     failures++;
     console.log("  FAIL  crashed: " + e.message);
+    // What each open page was showing, to find the cause without a screenshot.
+    for (const [i, p] of pages.entries()) {
+      if (p.isClosed()) continue;
+      const state = await p.evaluate(() => ({
+        login: !document.querySelector("#screen-login").hidden, app: !document.querySelector("#screen-app").hidden,
+        errors: Array.from(document.querySelectorAll(".form-error")).map((e) => e.textContent).filter(Boolean),
+        toast: document.querySelector("#toast").textContent, items: document.querySelectorAll(".item").length,
+      })).catch((err) => ({ unreadable: err.message }));
+      console.log(`        page ${i + 1}: ${JSON.stringify(state)}`);
+      console.log(`        page ${i + 1} JS errors: ${JSON.stringify(p.errors)}`);
+      console.log(`        page ${i + 1} last API answers:\n          ${p.apiLog.slice(-8).join("\n          ")}`);
+    }
   } finally {
     await browser.close();
     server.proc.kill();
