@@ -1,5 +1,7 @@
 # Chef Daily Order
 
+**Version 1.0.0** · [Solution document](docs/06-solution.md) · [Changelog](CHANGELOG.md)
+
 Mobile web app for chefs at **https://buy.mirchi.cl**: log in, enter the day's shopping
 quantities, send the priced order on WhatsApp. Orders are stored in MySQL (cPanel) and
 copied to a Google Sheet. Admins manage users and the item list.
@@ -12,7 +14,7 @@ Built stage by stage (waterfall):
 | 2. Design | [docs/02-design.md](docs/02-design.md) | Approved (v1.1: build changes in §11) |
 | 3. Build | this repository | Done |
 | 4. Test | [docs/04-test-plan.md](docs/04-test-plan.md), [docs/04-test-report.md](docs/04-test-report.md) | Done |
-| 5. Deploy | [docs/05-deploy-guide.md](docs/05-deploy-guide.md) | In progress |
+| 5. Deploy | [docs/05-deploy-guide.md](docs/05-deploy-guide.md) | Done — live at https://buy.mirchi.cl |
 
 ## What's where
 
@@ -21,7 +23,7 @@ Built stage by stage (waterfall):
 | `public/` | Everything uploaded to buy.mirchi.cl. Plain HTML/CSS/JS, no build step. |
 | `public/api/` | The server: PHP 8, one entry point (`index.php`), libraries in `lib/`, database changes in `migrations/` (run automatically), command-line jobs in `cron/`. |
 | `tests/` | `run.php` + `*_test.php` (API tests), `browser.cjs` (browser tests), `router.php` (local server). |
-| `docs/` | Requirements, design, test plan and report, deployment guide. |
+| `docs/` | Requirements, design, test plan and report, deployment guide, solution document. |
 
 ## Run it on your computer
 
